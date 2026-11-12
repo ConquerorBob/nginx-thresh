@@ -1,0 +1,21 @@
+[package]
+name = "nginx-sentinel"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "Rule-based threat detection for nginx access logs"
+license = "MIT"
+
+[[bin]]
+name = "sentinel"
+path = "src/main.rs"
+
+[dependencies]
+chrono = "0.4"
+colored = "2"
+indicatif = "0.17"
+regex = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
