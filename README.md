@@ -6,7 +6,23 @@ I run a few small servers. Every request they get is already in an nginx access 
 
 This is for anyone who runs nginx and wants a quick read on what hit them without standing up a log pipeline. It is one binary with no config file, and it makes no network calls.
 
-## Quickstart
+## Install
+
+Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.ps1 | iex
+```
+
+The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256, puts the binary in `~/.local/bin` (`%LOCALAPPDATA%\sentinel\bin` on Windows), and tells you if that directory is not on your PATH. Set `SENTINEL_VERSION=v0.1.0` to pin a release or `SENTINEL_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-sentinel/releases).
+
+## Build from source
 
 Rust 1.80 or newer is the only build requirement.
 
@@ -18,7 +34,7 @@ cargo build --release
 With no path argument, sentinel prints its banner and asks for a log path. It accepts quotes around the path and expands a leading `~/`. If you already know the path, pass it directly:
 
 ```bash
-./target/release/sentinel /var/log/nginx/access.log
+sentinel /var/log/nginx/access.log
 ```
 
 Here is a real run against the demo log. The ASCII banner and live progress bar are not part of this block; the numbers and rows are untouched.
