@@ -49,7 +49,7 @@ pub struct DashboardView<'a> {
 }
 
 /// Render the dashboard to stdout. Write failures (for example a closed pipe)
-/// are intentionally ignored so `sentinel | head` exits quietly.
+/// are intentionally ignored so `thresh | head` exits quietly.
 pub fn render_dashboard(view: &DashboardView<'_>) {
     let stdout = io::stdout();
     let mut out = stdout.lock();
@@ -291,7 +291,7 @@ fn write_footer<W: Write>(out: &mut W) -> io::Result<()> {
         out,
         "  {} {} · analysis complete",
         "◆".cyan(),
-        format!("sentinel v{}", env!("CARGO_PKG_VERSION")).bold()
+        format!("thresh v{}", env!("CARGO_PKG_VERSION")).bold()
     )?;
     writeln!(
         out,
@@ -778,7 +778,7 @@ mod tests {
         let brute = breakdown.find("Brute Force").expect("brute-force row");
         assert!(command < brute, "category order must be preserved");
 
-        assert!(rendered.contains(&format!("sentinel v{}", env!("CARGO_PKG_VERSION"))));
+        assert!(rendered.contains(&format!("thresh v{}", env!("CARGO_PKG_VERSION"))));
     }
 
     #[test]

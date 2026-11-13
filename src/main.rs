@@ -41,7 +41,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(());
         }
         cli::CliAction::Version => {
-            println!("sentinel {}", env!("CARGO_PKG_VERSION"));
+            println!("thresh {}", env!("CARGO_PKG_VERSION"));
             return Ok(());
         }
     };

@@ -241,7 +241,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let mut path = std::env::temp_dir();
-        path.push(format!("sentinel_prompt_test_{}_{stamp}.log", std::process::id()));
+        path.push(format!("thresh_prompt_test_{}_{stamp}.log", std::process::id()));
         std::fs::write(&path, b"127.0.0.1 - - [01/Jan/2026:00:00:00 +0000] \"GET / HTTP/1.1\" 200 0\n")
             .unwrap();
 

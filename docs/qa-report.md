@@ -1,10 +1,10 @@
-# nginx-sentinel — QA & security review
+# nginx-thresh — QA & security review
 
 > Historical review. This was run against the build before the reader, cap and detection fixes landed. The defects below were fixed afterward; see the current README and `docs/validation-after.md` for current behaviour. Kept for the audit trail.
 
 **Reviewer:** independent QA subagent (read-only except this file)
 **Date:** 2026-11-12 12:22 MST
-**Binary:** `sentinel 0.1.0`, `target/release/sentinel` sha256 `6f41ea61149e64c98f0fdc9bdefb0fe219e0755c995d35f96a529473fb32a2e3`
+**Binary:** `thresh 0.1.0`, `target/release/thresh` sha256 `6f41ea61149e64c98f0fdc9bdefb0fe219e0755c995d35f96a529473fb32a2e3`
 **Tree reviewed:** `src/*.rs` sha256 `24b60a7bb128c901c4be292a4f42d86a154f6c2a0a6cc8ad3b905a368726d9f9`
 (line numbers below were verified against that tree; `tests/integration.rs`, `README.md`, `LICENSE`, `docs/` were added/changed by other agents during this review — see §10)
 
@@ -79,16 +79,16 @@ This is independently documented by the concurrent integration test `max_events_
 
 Repro (120-line fixture; cap 2, so 2 of ~28 rule events retained):
 ```bash
-./target/release/sentinel tests/fixtures/attack_mix.log --no-color --max-events 2
+./target/release/thresh tests/fixtures/attack_mix.log --no-color --max-events 2
 # actual:   Threats      4 suspicious events  ·  4 unique offending IPs
 # expected: same, plus "! Event or auth-failure storage cap reached — rerun with a higher --max-events…"
-./target/release/sentinel demo/access-demo.log --no-color --max-events 5 | grep -c 'storage cap'
+./target/release/thresh demo/access-demo.log --no-color --max-events 5 | grep -c 'storage cap'
 # 0
 ```
 Failure side: a 520,000-line 401 log retains exactly 500,000 failures (BF evidence says `500000 failed logins`), drops 20,000, and prints no notice:
 ```bash
 # 520k x 401 /login, one IP
-./target/release/sentinel /tmp/qa/mem/fails.log --no-color --threads 1 | grep 'failed logins'
+./target/release/thresh /tmp/qa/mem/fails.log --no-color --threads 1 | grep 'failed logins'
 # Authentication brute force (BF-001) · 500000 failed logins in 300s (peak window)
 ```
 
@@ -105,12 +105,12 @@ Verified end-to-end with 500,000 benign 404s followed by 60 `POST /login` 401s:
   yes '203.0.113.77 - - [10/Oct/2000:13:55:36 -0700] "POST /login HTTP/1.1" 401 59 "-" "python-requests/2.31.0"' | head -n 60
 } > /tmp/404_then_401.log
 
-./target/release/sentinel /tmp/404_then_401.log --no-color --threads 1
+./target/release/thresh /tmp/404_then_401.log --no-color --threads 1
 #   Threats      0 suspicious events  ·  0 unique offending IPs
 #   │ ✓  No suspicious activity detected.                      │
 
 # same 60 x 401 moved to the front of the file:
-./target/release/sentinel /tmp/401_then_404.log --no-color --threads 1
+./target/release/thresh /tmp/401_then_404.log --no-color --threads 1
 #   Threats      1 ...
 #   #1 ... Brute Force  401
 #      Authentication brute force (BF-001) · 60 failed logins in 300s (peak window)
@@ -125,9 +125,9 @@ Stateful events are appended **after** the scan cap: `src/main.rs:70-75` does `l
 
 Repro:
 ```bash
-./target/release/sentinel demo/access-demo.log --no-color --max-events 5 | grep '^  Threats'
+./target/release/thresh demo/access-demo.log --no-color --max-events 5 | grep '^  Threats'
 #   Threats      7 suspicious events  ·  3 unique offending IPs     (5 rule hits + BF + SCAN)
-./target/release/sentinel tests/fixtures/attack_mix.log --no-color --max-events 2 | grep '^  Threats'
+./target/release/thresh tests/fixtures/attack_mix.log --no-color --max-events 2 | grep '^  Threats'
 #   Threats      4 suspicious events  ·  4 unique offending IPs     (2 + BF + SCAN)
 ```
 Fix: apply the budget after the stateful pass too (truncate or count BF/SCAN against the remainder) and adjust the help/README wording.
@@ -162,7 +162,7 @@ All log-controlled fields are sanitised before rendering: `sanitize` replaces ev
 The gap is error text: `main` formats a path directly (`src/main.rs:51-54` → `eprintln!` at `:21`) and the prompt does the same (`src/ui/prompt.rs:130-150`). A directory named with `ESC]0;…BEL` prints the raw sequence to stderr:
 ```bash
 d=$'/tmp/dir\x1b]0;PWNED\x07'; mkdir -p "$d"
-./target/release/sentinel "$d" --no-color 2>&1 | xxd | grep -c '1b 5d 30 3b'
+./target/release/thresh "$d" --no-color 2>&1 | xxd | grep -c '1b 5d 30 3b'
 # 1  (raw ESC ] 0 ; in stderr)
 ```
 Impact is low (the path is operator-supplied; the log content itself is safe), but a scanner run over attacker-influenced directory names should not emit OSC. Fix: run the same control-character replacement over paths in `fatal:` and prompt errors (or quote/escape them).
@@ -178,7 +178,7 @@ Evidence:
 Repro for the first bullet (12 blocks of 60 hostile lines, padded to 1 MiB each):
 ```bash
 for i in $(seq 20); do
-  ./target/release/sentinel /tmp/qa/cap/cap.log --no-color --threads 12 \
+  ./target/release/thresh /tmp/qa/cap/cap.log --no-color --threads 12 \
     --chunk-mb 1 --max-events 100 | grep '^  Threats'
 done | sort -u
 # two distinct lines: "... 100 suspicious events · 20 unique offending IPs"
@@ -195,7 +195,7 @@ Untruncated runs are fully deterministic (see §6), so this only affects capped 
 
 `DashboardView.threads` is `opts.threads` (`src/main.rs:127`), while the reader clamps to `min(threads, chunk_count)` (`src/parser/reader.rs:157`). `--chunk-mb 1024` on the 112 MiB demo produces one chunk → one worker, but the dashboard says `12 workers`; wall time 2.42–2.48 s (single-thread speed) vs 0.60 s with 12 workers. Repro:
 ```bash
-/usr/bin/time -f '%e s' ./target/release/sentinel demo/access-demo.log --no-color --chunk-mb 1024
+/usr/bin/time -f '%e s' ./target/release/thresh demo/access-demo.log --no-color --chunk-mb 1024
 # dashboard: "Execution 2.42 s · 12 workers"; effective workers = 1
 ```
 Fix: return `worker_count` in `ScanOutcome` and display that (or “12 requested, 7 active”).
@@ -234,7 +234,7 @@ All runs used `--no-color`, `--threads 4` unless noted; no command hung (5 s `ti
 | prompt, stdin EOF | `</dev/null`, no path arg | exit 1, `fatal: no log path provided`, no hang |
 | prompt, bad path then EOF | pipe `"/nope\n"` | one `✗ no such file` then fatal `no log path provided` |
 | prompt, quoted path with spaces | `"/tmp/qa/space name.log"` | accepted, scanned |
-| prompt, `~/…` | `"~/nginx-sentinel/demo/access-demo.log"` | expanded, scanned |
+| prompt, `~/…` | `"~/nginx-thresh/demo/access-demo.log"` | expanded, scanned |
 | broken pipe / closed stdout | `| head -1`, `>&-` | exit 0, no panic (banner/dashboard ignore write errors; Rust std handles closed fd 0–2) |
 | hostile filename | ESC/BEL + `\n` in name | dashboard renders one line, 0 ESC/BEL (error path differs, F5) |
 
@@ -325,7 +325,7 @@ f1d862eee7253f791fce352b7ba40160a50cd6844eee0084623265f47e1675e4  /tmp/qa/regen.
 ```
 Per-IP hostile counts match the generator: 12, 9, 8, 120, 46, 5, 5, 8, 3.
 
-**`.gitignore`**: `/target` and `/demo/*.log` — covers the demo log. There is **no `.git` directory** in `/home/seun/nginx-sentinel` (`git status` → `fatal: not a git repository`), so `git check-ignore` could not be run; the ignore status is inferred from the file only. `tests/fixtures/*.log` are intentionally not ignored.
+**`.gitignore`**: `/target` and `/demo/*.log` — covers the demo log. There is **no `.git` directory** in `/home/seun/nginx-thresh` (`git status` → `fatal: not a git repository`), so `git check-ignore` could not be run; the ignore status is inferred from the file only. `tests/fixtures/*.log` are intentionally not ignored.
 
 **Dependencies** (`Cargo.lock`): 4 direct deps — `chrono 0.4.45`, `colored 2.2.0`, `indicatif 0.17.11`, `regex 1.13.1`. 61 locked packages, of which **19 compile on Linux** (root + 18); the rest are target-gated Windows/wasm/android crates pulled by `chrono`/`console`/`indicatif`. `cargo tree -d` reports no duplicate versions; 61/61 registry packages have checksums; no `source = "git…"` or path dependencies; no build script in this crate. `cc`/`find-msvc-tools` are not in the host graph (target-only). No supply-chain red flags. `cargo audit` is not installed (`error: no such command: audit`) and was skipped; given the small, current, heavily used dependency set, a CI `cargo audit`/`cargo deny` job is still worthwhile.
 

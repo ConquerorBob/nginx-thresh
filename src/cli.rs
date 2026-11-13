@@ -148,12 +148,12 @@ where
 pub fn print_help() {
     println!(
         "\
-sentinel {version} - rule-based threat detection for nginx access logs
+thresh {version} - rule-based threat detection for nginx access logs
 
 USAGE:
-    sentinel [LOG_PATH] [OPTIONS]
+    thresh [LOG_PATH] [OPTIONS]
 
-    LOG_PATH is optional. When omitted, sentinel prompts for it.
+    LOG_PATH is optional. When omitted, thresh prompts for it.
 
 OPTIONS:
     -h, --help           Show this help

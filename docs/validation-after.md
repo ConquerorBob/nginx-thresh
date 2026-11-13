@@ -1,16 +1,16 @@
-# nginx-sentinel — Post-Hardening Adversarial Validation
+# nginx-thresh — Post-Hardening Adversarial Validation
 
-**Target:** `/home/seun/nginx-sentinel`
-**Binary:** `target/release/sentinel`, v0.1.0, built **2026-11-12 12:41:09 -0700**
+**Target:** `/home/seun/nginx-thresh`
+**Binary:** `target/release/thresh`, v0.1.0, built **2026-11-12 12:41:09 -0700**
 **SHA-256:** `8dc03faf4b4e505417fbf5459e3fe964490b50a72cf9f779ab02ce4d42e53467`
 **Validated:** 2026-11-12 (MST), 20:01 UTC
 **Baseline:** `docs/validation-report.md` (same day, pre-hardening)
 **Mode:** read-only validation. No file under `src/`, `tests/`, `Cargo.toml`, `README.md`, `docs/detections.md` or the old reports was changed. This report is the only deliverable. Scratch corpora and harnesses live under `/home/seun/.hermes/cache/scratch/adversarial/`.
-**Invocation:** `sentinel <case>.log --no-color --top 100`; defaults otherwise (window 300 s, threshold 20, max events 250 000, auto threads).
+**Invocation:** `thresh <case>.log --no-color --top 100`; defaults otherwise (window 300 s, threshold 20, max events 250 000, auto threads).
 
 > Follow-up after this report: the CMDI matrix-parameter regression was fixed with a separator guard, SSRF-002 was demoted to severity 3 and limited to fetch parameters, User-Agent traversal was added as TRAV-012, and header values are now percent-decoded before matching. The rule count is 139 and the current README reflects this build. This file stays as the record of the 138-rule run.
 
-The binary was checked for freshness before every run: its mtime is newer than every file under `src/` (`find src -newer target/release/sentinel` returns 0 files), so no rebuild was required. `cargo test --release` was run afterwards and did not change the binary hash.
+The binary was checked for freshness before every run: its mtime is newer than every file under `src/` (`find src -newer target/release/thresh` returns 0 files), so no rebuild was required. `cargo test --release` was run afterwards and did not change the binary hash.
 
 ---
 
@@ -43,8 +43,8 @@ The binary was checked for freshness before every run: its mtime is newer than e
 
 | Item | Value |
 |---|---|
-| Package / version | `nginx-sentinel` 0.1.0 |
-| Binary | `target/release/sentinel` |
+| Package / version | `nginx-thresh` 0.1.0 |
+| Binary | `target/release/thresh` |
 | Build time | 2026-11-12 12:41:09 -0700 |
 | SHA-256 | `8dc03faf4b4e505417fbf5459e3fe964490b50a72cf9f779ab02ce4d42e53467` |
 | Source freshness | 0 files under `src/` newer than the binary |
@@ -613,7 +613,7 @@ Ordered by operational impact. “New” means introduced or materially worsened
 ## Appendix B — reproduction
 
 ```bash
-cd /home/seun/nginx-sentinel
+cd /home/seun/nginx-thresh
 python3 /home/seun/.hermes/cache/scratch/adversarial/harness.py   # 57 attacks + 20 benign + 9 correlations + aggregates
 python3 /home/seun/.hermes/cache/scratch/adversarial/wave2.py     # calibration / encodings / headers
 python3 /home/seun/.hermes/cache/scratch/adversarial/wave4.py     # parser / format variants
@@ -621,8 +621,8 @@ python3 /home/seun/.hermes/cache/scratch/adversarial/wave5.py     # remaining va
 python3 /home/seun/.hermes/cache/scratch/adversarial/verify_after.py        # exact prior-fix payloads + 53 lookalikes
 python3 /home/seun/.hermes/cache/scratch/adversarial/verify_after_extra.py  # matrix / UA traversal / protocol-relative / 403
 cargo test --release
-./target/release/sentinel demo/access-demo.log --no-color --top 100
-./target/release/sentinel tests/fixtures/benign.log --no-color
+./target/release/thresh demo/access-demo.log --no-color --top 100
+./target/release/thresh tests/fixtures/benign.log --no-color
 ```
 
 The corpus logs are under `/home/seun/.hermes/cache/scratch/adversarial/cases/`; parsed results are in `results.json`, `wave2.json`, `wave4.json`, `wave5.json`, `verify_after.json` and `verify_after_extra.json`. Prior-run snapshots are `results-prior.json`, `wave2-prior.json`, `wave4-prior.json`, `wave5-prior.json`.

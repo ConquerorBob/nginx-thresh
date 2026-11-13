@@ -64,28 +64,28 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp "target/${{ matrix.target }}/release/sentinel" dist/sentinel
-          strip dist/sentinel || true
-          archive="sentinel-${RELEASE_TAG}-${{ matrix.target }}.${{ matrix.archive }}"
-          tar -C dist -czf "dist/${archive}" sentinel
+          cp "target/${{ matrix.target }}/release/thresh" dist/thresh
+          strip dist/thresh || true
+          archive="thresh-${RELEASE_TAG}-${{ matrix.target }}.${{ matrix.archive }}"
+          tar -C dist -czf "dist/${archive}" thresh
           if command -v sha256sum >/dev/null 2>&1; then
             (cd dist && sha256sum "${archive}" > "${archive}.sha256")
           else
             (cd dist && shasum -a 256 "${archive}" > "${archive}.sha256")
           fi
-          rm -f dist/sentinel
+          rm -f dist/thresh
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/sentinel.exe" "dist/sentinel.exe"
-          $archive = "sentinel-$env:RELEASE_TAG-${{ matrix.target }}.zip"
-          Compress-Archive -Path "dist/sentinel.exe" -DestinationPath "dist/$archive"
+          Copy-Item "target/${{ matrix.target }}/release/thresh.exe" "dist/thresh.exe"
+          $archive = "thresh-$env:RELEASE_TAG-${{ matrix.target }}.zip"
+          Compress-Archive -Path "dist/thresh.exe" -DestinationPath "dist/$archive"
           $hash = (Get-FileHash "dist/$archive" -Algorithm SHA256).Hash.ToLower()
           "$hash  $archive" | Out-File -Encoding ascii "dist/$archive.sha256"
-          Remove-Item "dist/sentinel.exe"
+          Remove-Item "dist/thresh.exe"
 
       - uses: actions/upload-artifact@v7
         with:

@@ -1,8 +1,8 @@
-# sentinel
+# thresh
 
-nginx access log in, a ranked list of hostile requests out. The crate is `nginx-sentinel`; the binary it builds is `sentinel`.
+nginx access log in, a ranked list of hostile requests out. The crate is `nginx-thresh`; the binary it builds is `thresh`.
 
-I run a few small servers. Every request they get is already in an nginx access log, which is great until I try to read it. `grep` for `../` returns a page of noise from my own asset paths, and the one request that actually tried `/etc/passwd` is buried in the middle. I wrote sentinel to do the boring part: parse the log into typed entries, run a rule set over the parts an attacker controls, correlate hits by source IP, and print the handful of requests worth looking at first.
+I run a few small servers. Every request they get is already in an nginx access log, which is great until I try to read it. `grep` for `../` returns a page of noise from my own asset paths, and the one request that actually tried `/etc/passwd` is buried in the middle. I wrote thresh to do the boring part: parse the log into typed entries, run a rule set over the parts an attacker controls, correlate hits by source IP, and print the handful of requests worth looking at first.
 
 This is for anyone who runs nginx and wants a quick read on what hit them without standing up a log pipeline. It is one binary with no config file, and it makes no network calls.
 
@@ -11,24 +11,24 @@ This is for anyone who runs nginx and wants a quick read on what hit them withou
 Linux and macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.ps1 | iex
 ```
 
-The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `SENTINEL_VERSION=v0.1.0` to pin a release or `SENTINEL_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-sentinel/releases).
+The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.0` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
 
-nginx logs are usually root-owned, and `sudo` uses a restricted PATH that does not include `~/.local/bin`. If you plan to run `sudo sentinel /var/log/nginx/access.log`, install system-wide instead:
+nginx logs are usually root-owned, and `sudo` uses a restricted PATH that does not include `~/.local/bin`. If you plan to run `sudo thresh /var/log/nginx/access.log`, install system-wide instead:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.sh | sudo sh
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sudo sh
 ```
 
-That writes `/usr/local/bin/sentinel`, which sudo's secure path includes. If you keep the per-user install, use `sudo "$(command -v sentinel)" /var/log/nginx/access.log`, or run sentinel without sudo after adding yourself to the log's group.
+That writes `/usr/local/bin/thresh`, which sudo's secure path includes. If you keep the per-user install, use `sudo "$(command -v thresh)" /var/log/nginx/access.log`, or run thresh without sudo after adding yourself to the log's group.
 
 ## Build from source
 
@@ -36,19 +36,19 @@ Rust 1.80 or newer is the only build requirement.
 
 ```bash
 cargo build --release
-./target/release/sentinel
+./target/release/thresh
 ```
 
-With no path argument, sentinel prints its banner and asks for a log path. It accepts quotes around the path and expands a leading `~/`. If you already know the path, pass it directly:
+With no path argument, thresh prints its banner and asks for a log path. It accepts quotes around the path and expands a leading `~/`. If you already know the path, pass it directly:
 
 ```bash
-sentinel /var/log/nginx/access.log
+thresh /var/log/nginx/access.log
 ```
 
 Here is a real run against the demo log. The ASCII banner and live progress bar are not part of this block; the numbers and rows are untouched.
 
 ```bash
-./target/release/sentinel demo/access-demo.log --no-color --top 10
+./target/release/thresh demo/access-demo.log --no-color --top 10
 ```
 
 ```
@@ -121,7 +121,7 @@ Here is a real run against the demo log. The ASCII banner and live progress bar 
       Include-style parameter with a sensitive path (LFI-002) · pattern file_param_traversal in '…
 
   ────────────────────────────────────────────────────────────────────────────────────────────
-  ◆ sentinel v0.1.0 · analysis complete
+  ◆ thresh v0.1.0 · analysis complete
   Rerun with --top N to inspect more.
 ```
 
@@ -129,7 +129,7 @@ Here is a real run against the demo log. The ASCII banner and live progress bar 
 
 `Execution 569.91 ms · 8 workers` and `1.05M/s` are from this machine. A one-thread run of the same file took 2.78 s at 215.8K/s, with the same 381 events in the same order.
 
-The worker count is the number that actually ran, not the one I asked for. This box reports 12 CPUs, so sentinel asks for 12 threads, but the file splits into eight 16 MiB chunks. Eight workers is all the work there is, even though `--help` caps the automatic count at 16.
+The worker count is the number that actually ran, not the one I asked for. This box reports 12 CPUs, so thresh asks for 12 threads, but the file splits into eight 16 MiB chunks. Eight workers is all the work there is, even though `--help` caps the automatic count at 16.
 
 `381 suspicious events · 9 unique offending IPs` counts rule hits, not requests. One URL can trip three rules, and each stateful detector adds one event per offending IP when it fires. Nine source IPs produced all 381. The `TOP THREATS` list collapses multiple hits from the same log line into one row so you see distinct requests instead of the same payload three times.
 
@@ -143,7 +143,7 @@ Do not read the score as a probability. A 26 means the request is several times 
 
 ## Demo log
 
-Generate the demo file before pointing sentinel at your own logs:
+Generate the demo file before pointing thresh at your own logs:
 
 ```bash
 python3 scripts/gen_demo_log.py
@@ -202,7 +202,7 @@ final = round2(base x contextual multiplier)
 
 Rule severity is 1 to 10 and lives in the rule definition. The base cap at 12.5 stops one severity-10 hit on a 200 from running away with the ranking.
 
-Context is per source IP and per time window. For each event, sentinel looks forward `--window` seconds (300 by default) and counts distinct rule IDs from the same IP in that range. Two distinct rules give 1.15, three give 1.30, and each extra adds 0.15, up to a cap of 2.5. Repeats of the same rule do not stack. Ten identical SQLi attempts from one IP still get 1.0; ten different attack types get 2.35.
+Context is per source IP and per time window. For each event, thresh looks forward `--window` seconds (300 by default) and counts distinct rule IDs from the same IP in that range. Two distinct rules give 1.15, three give 1.30, and each extra adds 0.15, up to a cap of 2.5. Repeats of the same rule do not stack. Ten identical SQLi attempts from one IP still get 1.0; ten different attack types get 2.35.
 
 The window looks forward from each event, not backward. Early events in a burst see the rest of the burst and get the full multiplier. The last event in the burst sees only itself. That is why the top two SQLi rows in the demo carry 2.50 and 2.35 multipliers instead of one shared number. It also means the first hit from a noisy IP tends to rank highest, which is the row I want to read first.
 
@@ -240,7 +240,7 @@ The dashboard is assembled last: headline counts, the category histogram, and th
 
 | Flag | Default | What it does |
 | --- | --- | --- |
-| `LOG_PATH` | prompt | Access log to scan. Optional; when omitted sentinel asks |
+| `LOG_PATH` | prompt | Access log to scan. Optional; when omitted thresh asks |
 | `--threads N` | auto, 1-16 | Parser workers. Accepts 1-64 |
 | `--top N` | 10 | Ranked rows on the dashboard. Accepts 1-100 |
 | `--window SECS` | 300 | Correlation and stateful window. Accepts 1-86400 |

@@ -1,20 +1,20 @@
-# Install sentinel on Windows from GitHub Releases.
+# Install thresh on Windows from GitHub Releases.
 #
-#   irm https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.ps1 | iex
 #
 # Environment:
-#   SENTINEL_VERSION  release tag to install (default: latest)
+#   THRESH_VERSION  release tag to install (default: latest)
 
 $ErrorActionPreference = "Stop"
-$repo = "ConquerorBob/nginx-sentinel"
-$installDir = Join-Path $env:LOCALAPPDATA "sentinel\bin"
-$exe = Join-Path $installDir "sentinel.exe"
+$repo = "ConquerorBob/nginx-thresh"
+$installDir = Join-Path $env:LOCALAPPDATA "thresh\bin"
+$exe = Join-Path $installDir "thresh.exe"
 
 if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
     throw "No prebuilt binary for $env:PROCESSOR_ARCHITECTURE. Build from source with: cargo build --release"
 }
 
-$version = $env:SENTINEL_VERSION
+$version = $env:THRESH_VERSION
 if (-not $version) {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest"
     $version = $release.tag_name
@@ -24,9 +24,9 @@ if (-not $version) {
 }
 
 $target = "x86_64-pc-windows-msvc"
-$archive = "sentinel-$version-$target.zip"
+$archive = "thresh-$version-$target.zip"
 $baseUrl = "https://github.com/$repo/releases/download/$version"
-$tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("sentinel-" + [System.Guid]::NewGuid())
+$tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("thresh-" + [System.Guid]::NewGuid())
 New-Item -ItemType Directory -Force $tmp | Out-Null
 
 try {
@@ -44,7 +44,7 @@ try {
 
     Expand-Archive -Path $archivePath -DestinationPath $tmp -Force
     New-Item -ItemType Directory -Force $installDir | Out-Null
-    Copy-Item (Join-Path $tmp "sentinel.exe") $exe -Force
+    Copy-Item (Join-Path $tmp "thresh.exe") $exe -Force
 } finally {
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }

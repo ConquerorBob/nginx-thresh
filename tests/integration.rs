@@ -1,6 +1,6 @@
-//! End-to-end tests for the compiled `sentinel` binary.
+//! End-to-end tests for the compiled `thresh` binary.
 //!
-//! Every test spawns `env!("CARGO_BIN_EXE_sentinel")`, so these cover argument
+//! Every test spawns `env!("CARGO_BIN_EXE_thresh")`, so these cover argument
 //! parsing, the banner, the interactive prompt, the parallel scan, every
 //! detection family that has a fixture, the dashboard renderer and the process
 //! exit codes. No test reaches into the crate's internals.
@@ -44,7 +44,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const BIN: &str = env!("CARGO_BIN_EXE_sentinel");
+const BIN: &str = env!("CARGO_BIN_EXE_thresh");
 
 const ATTACK_MIX_LINES: u64 = 120;
 const ATTACK_MIX_MALFORMED: u64 = 3;
@@ -92,7 +92,7 @@ fn run(args: &[String], stdin: Option<&str>) -> Output {
             .expect("failed to write to the child's stdin");
     }
 
-    child.wait_with_output().expect("failed to wait for sentinel")
+    child.wait_with_output().expect("failed to wait for thresh")
 }
 
 fn stdout(output: &Output) -> String {
@@ -482,7 +482,7 @@ fn multi_chunk_scan_is_deterministic() {
         .expect("clock after epoch")
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "sentinel_integration_multichunk_{}_{}.log",
+        "thresh_integration_multichunk_{}_{}.log",
         std::process::id(),
         stamp
     ));
@@ -586,7 +586,7 @@ fn help_and_version_flags() {
     let help_text = stdout(&help);
     for needle in [
         "USAGE:",
-        "sentinel [LOG_PATH] [OPTIONS]",
+        "thresh [LOG_PATH] [OPTIONS]",
         "--threads",
         "--top",
         "--window",
@@ -603,15 +603,15 @@ fn help_and_version_flags() {
     assert!(
         stdout(&version)
             .lines()
-            .any(|line| line.trim() == "sentinel 0.1.0"),
-        "--version must print `sentinel 0.1.0`, got:\n{}",
+            .any(|line| line.trim() == "thresh 0.1.0"),
+        "--version must print `thresh 0.1.0`, got:\n{}",
         stdout(&version)
     );
 }
 
 #[test]
 fn missing_file_and_directory_are_rejected() {
-    let missing = PathBuf::from("/definitely/not/here/sentinel-access.log");
+    let missing = PathBuf::from("/definitely/not/here/thresh-access.log");
     let output = run(&argv(Some(&missing), &["--no-color"]), None);
     assert_failure(&output, "nonexistent log path");
     let err = stderr(&output);
@@ -804,7 +804,7 @@ fn large_line_count_uses_thousands_separators() {
         .expect("clock after epoch")
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "sentinel_integration_{}_{}.log",
+        "thresh_integration_{}_{}.log",
         std::process::id(),
         stamp
     ));

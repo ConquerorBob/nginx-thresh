@@ -1,21 +1,21 @@
 #!/bin/sh
-# Install sentinel from GitHub Releases.
+# Install thresh from GitHub Releases.
 #
-#   curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh
 #
 # Environment:
-#   SENTINEL_INSTALL_DIR  destination directory (default: ~/.local/bin)
-#   SENTINEL_VERSION      release tag to install (default: latest)
+#   THRESH_INSTALL_DIR  destination directory (default: ~/.local/bin)
+#   THRESH_VERSION      release tag to install (default: latest)
 
 set -eu
 
-REPO="ConquerorBob/nginx-sentinel"
-VERSION="${SENTINEL_VERSION:-}"
+REPO="ConquerorBob/nginx-thresh"
+VERSION="${THRESH_VERSION:-}"
 SYSTEM=0
 
 usage() {
     cat <<'EOF'
-Install sentinel from GitHub Releases.
+Install thresh from GitHub Releases.
 
 Usage:
   install.sh [--system]
@@ -24,8 +24,8 @@ Usage:
               curl -fsSL <installer-url> | sudo sh
 
 Environment:
-  SENTINEL_INSTALL_DIR  destination directory
-  SENTINEL_VERSION      release tag to install (default: latest)
+  THRESH_INSTALL_DIR  destination directory
+  THRESH_VERSION      release tag to install (default: latest)
 EOF
 }
 
@@ -40,7 +40,7 @@ while [ "$#" -gt 0 ]; do
             exit 0
             ;;
         *)
-            printf 'sentinel installer: unknown option: %s\n' "$1" >&2
+            printf 'thresh installer: unknown option: %s\n' "$1" >&2
             usage >&2
             exit 2
             ;;
@@ -48,23 +48,23 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ "$SYSTEM" -eq 1 ] && [ "$(id -u)" -ne 0 ]; then
-    printf 'sentinel installer: --system needs root. Run:\n' >&2
+    printf 'thresh installer: --system needs root. Run:\n' >&2
     printf '  curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | sudo sh\n' "$REPO" >&2
     exit 1
 fi
 
-if [ -n "${SENTINEL_INSTALL_DIR:-}" ]; then
-    INSTALL_DIR="$SENTINEL_INSTALL_DIR"
+if [ -n "${THRESH_INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$THRESH_INSTALL_DIR"
 elif [ "$(id -u)" -eq 0 ]; then
     # sudo's secure_path normally includes /usr/local/bin. Installing there
-    # means `sudo sentinel /var/log/nginx/access.log` works.
+    # means `sudo thresh /var/log/nginx/access.log` works.
     INSTALL_DIR="/usr/local/bin"
 else
     INSTALL_DIR="$HOME/.local/bin"
 fi
 
 fail() {
-    printf 'sentinel installer: %s\n' "$*" >&2
+    printf 'thresh installer: %s\n' "$*" >&2
     exit 1
 }
 
@@ -115,7 +115,7 @@ if [ -z "$VERSION" ]; then
     esac
 fi
 
-archive="sentinel-${VERSION}-${target}.tar.gz"
+archive="thresh-${VERSION}-${target}.tar.gz"
 base_url="https://github.com/${REPO}/releases/download/${VERSION}"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT INT TERM
@@ -134,13 +134,13 @@ fi
 
 tar -xzf "${tmpdir}/${archive}" -C "$tmpdir"
 mkdir -p "$INSTALL_DIR"
-install -m 0755 "${tmpdir}/sentinel" "${INSTALL_DIR}/sentinel"
+install -m 0755 "${tmpdir}/thresh" "${INSTALL_DIR}/thresh"
 
-printf 'Installed %s\n' "${INSTALL_DIR}/sentinel"
-"${INSTALL_DIR}/sentinel" --version
+printf 'Installed %s\n' "${INSTALL_DIR}/thresh"
+"${INSTALL_DIR}/thresh" --version
 
 if [ "$(id -u)" -ne 0 ]; then
-    printf '\nReading /var/log/nginx/access.log usually needs root. To make `sudo sentinel` work, install system-wide:\n'
+    printf '\nReading /var/log/nginx/access.log usually needs root. To make `sudo thresh` work, install system-wide:\n'
     printf '  curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | sudo sh\n' "$REPO"
 fi
 

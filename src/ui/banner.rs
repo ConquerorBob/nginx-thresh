@@ -1,4 +1,4 @@
-//! Startup splash for the `sentinel` binary.
+//! Startup splash for the `thresh` binary.
 //!
 //! The wordmark is drawn as a six-row block letter form so it stays legible
 //! on any UTF-8 terminal. Colours come from `colored`, which automatically
@@ -9,24 +9,24 @@ use std::io::{self, Write};
 
 use colored::Colorize;
 
-/// Six-row block-letter wordmark for `SENTINEL`.
+/// Six-row block-letter wordmark for `THRESH`.
 ///
 /// Rows are stored with trailing padding removed; internal spacing is part of
 /// the glyphs and must be preserved.
 const WORDMARK: [&str; 6] = [
-    "███████╗███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗██╗",
-    "██╔════╝██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝██║",
-    "███████╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗  ██║",
-    "╚════██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  ██║",
-    "███████║███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗███████╗",
-    "╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝",
+    "████████╗██╗  ██╗██████╗ ███████╗███████╗██╗  ██╗",
+    "╚══██╔══╝██║  ██║██╔══██╗██╔════╝██╔════╝██║  ██║",
+    "   ██║   ███████║██████╔╝█████╗  ███████╗███████║",
+    "   ██║   ██╔══██║██╔══██╗██╔══╝  ╚════██║██╔══██║",
+    "   ██║   ██║  ██║██║  ██║███████╗███████║██║  ██║",
+    "   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝",
 ];
 
 /// Left margin for the wordmark rows; matches the first row's shield prefix.
 const INDENT: &str = "     ";
 
 /// Separator drawn at the width of the wordmark's widest row.
-const RULE_WIDTH: usize = 64;
+const RULE_WIDTH: usize = 49;
 
 const TAGLINE: &str = "NGINX ACCESS-LOG THREAT DETECTION";
 
@@ -34,7 +34,7 @@ const TAGLINE: &str = "NGINX ACCESS-LOG THREAT DETECTION";
 pub fn print_banner() {
     let stdout = io::stdout();
     let mut out = stdout.lock();
-    // A closed pipe (`sentinel | head`) is not an error worth panicking over.
+    // A closed pipe (`thresh | head`) is not an error worth panicking over.
     let _ = write_banner(&mut out);
 }
 

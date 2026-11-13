@@ -1,11 +1,11 @@
-# nginx-sentinel — Adversarial Validation Report
+# nginx-thresh — Adversarial Validation Report
 
 > Historical review. This was run before the detection hardening pass; the false positives and false negatives below were addressed afterwards. See `docs/validation-after.md` for the post-fix results and the current README for present behaviour.
 
-**Target:** `/home/seun/nginx-sentinel`, release binary `target/release/sentinel` (v0.1.0, built 2026-11-12 12:09)
+**Target:** `/home/seun/nginx-thresh`, release binary `target/release/thresh` (v0.1.0, built 2026-11-12 12:09)
 **Date:** 2026-11-12
 **Mode:** read-only validation. No changes were made to `src/`, `tests/`, `Cargo.toml`, `README` or any other document; this file is the only deliverable.
-**Invocation used throughout:** `sentinel <case>.log --no-color --top 100` (defaults otherwise: window 300 s, threshold 20, max events 250 000, auto threads = 12).
+**Invocation used throughout:** `thresh <case>.log --no-color --top 100` (defaults otherwise: window 300 s, threshold 20, max events 250 000, auto threads = 12).
 
 ---
 
@@ -77,8 +77,8 @@ A case is a **true positive** when it produces ≥1 event *and* the expected cat
 ### 2.3 Reproduce
 
 ```bash
-cd /home/seun/nginx-sentinel
-./target/release/sentinel <case>.log --no-color --top 100
+cd /home/seun/nginx-thresh
+./target/release/thresh <case>.log --no-color --top 100
 python3 /home/seun/.hermes/cache/scratch/adversarial/harness.py   # core corpus + aggregates
 python3 /home/seun/.hermes/cache/scratch/adversarial/wave2.py     # calibration / encoding probes
 ```
@@ -226,11 +226,11 @@ That is a 30 % request-level false-positive rate, and the top of the ranked list
 `SCAN-001` calibration detail: `scan_threshold = max(threshold × 2, 25)`. With the documented default `--threshold 20`, an operator needs **40** distinct 404/403 paths to trigger, despite the constant being named `SCAN_MIN_DISTINCT = 25`. The task's 30-path case therefore produces “No suspicious activity detected” at defaults.
 
 ```
-$ sentinel corr-scan-30-default.log --no-color --top 3
+$ thresh corr-scan-30-default.log --no-color --top 3
   Threats      0 suspicious events  ·  0 unique offending IPs
   │ ✓  No suspicious activity detected.                      │
 
-$ sentinel corr-scan-30-t10.log --no-color --threshold 10 --top 3
+$ thresh corr-scan-30-t10.log --no-color --threshold 10 --top 3
   Threats      1 suspicious events  ·  1 unique offending IPs
   #1   5.00   …  203.0.113.80  Reconnaissance  404
     ↳ GET /probe/0
@@ -368,7 +368,7 @@ Not an evasion, but a functional false negative against the stated expectation: 
 Exact payloads and output:
 
 ```
-$ sentinel ben-ben-08.log --no-color --top 100
+$ thresh ben-ben-08.log --no-color --top 100
   Threats      1 suspicious events  ·  1 unique offending IPs
   Severity     CRITICAL 1 (>=8) · HIGH 0 (6-7.99) · MEDIUM 0 (<6)
   SSRF                        1
@@ -386,7 +386,7 @@ Recommended: demote `SSRF-001` to severity 2–3 (“URL parameter with an absol
 ### FP-2 — `WEBSHELL-004`: any `?cmd=` value is a webshell (P0/P1)
 
 ```
-$ sentinel w2-benign-cmd-download.log --no-color --top 100
+$ thresh w2-benign-cmd-download.log --no-color --top 100
   Threats      1 suspicious events  ·  1 unique offending IPs
   #1   11.25  2026-11-12 10:00:00  203.0.113.10  Webshell  200
     ↳ GET /player?cmd=download
@@ -404,7 +404,7 @@ Recommended: require a command-looking value (one of the shell command names, a 
 ### FP-4 — `BF-001`: 401 bursts on API endpoints (P1)
 
 ```
-$ sentinel w3-api-401-burst.log --no-color --top 5
+$ thresh w3-api-401-burst.log --no-color --top 5
   Threats      1 suspicious events  ·  1 unique offending IPs
   #1   7.00   2026-11-12 10:00:00  198.51.100.44  Brute Force  401
     ↳ GET /api/v1/orders/0

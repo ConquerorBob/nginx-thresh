@@ -535,7 +535,7 @@ mod tests {
             .map(|duration| duration.as_nanos())
             .unwrap_or(0);
         std::env::temp_dir().join(format!(
-            "sentinel-parser-{tag}-{}-{nanos}-{sequence}.log",
+            "thresh-parser-{tag}-{}-{nanos}-{sequence}.log",
             std::process::id()
         ))
     }

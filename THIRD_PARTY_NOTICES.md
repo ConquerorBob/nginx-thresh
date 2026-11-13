@@ -1,6 +1,6 @@
 # Third-party notices
 
-sentinel itself is MIT licensed. It links the following direct dependencies:
+thresh itself is MIT licensed. It links the following direct dependencies:
 
 | Crate | Version | License |
 | --- | --- | --- |
