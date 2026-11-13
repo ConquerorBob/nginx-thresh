@@ -10,8 +10,58 @@
 set -eu
 
 REPO="ConquerorBob/nginx-sentinel"
-INSTALL_DIR="${SENTINEL_INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${SENTINEL_VERSION:-}"
+SYSTEM=0
+
+usage() {
+    cat <<'EOF'
+Install sentinel from GitHub Releases.
+
+Usage:
+  install.sh [--system]
+
+  --system  Install to /usr/local/bin. Must run as root, for example:
+              curl -fsSL <installer-url> | sudo sh
+
+Environment:
+  SENTINEL_INSTALL_DIR  destination directory
+  SENTINEL_VERSION      release tag to install (default: latest)
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --system)
+            SYSTEM=1
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'sentinel installer: unknown option: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ "$SYSTEM" -eq 1 ] && [ "$(id -u)" -ne 0 ]; then
+    printf 'sentinel installer: --system needs root. Run:\n' >&2
+    printf '  curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | sudo sh\n' "$REPO" >&2
+    exit 1
+fi
+
+if [ -n "${SENTINEL_INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$SENTINEL_INSTALL_DIR"
+elif [ "$(id -u)" -eq 0 ]; then
+    # sudo's secure_path normally includes /usr/local/bin. Installing there
+    # means `sudo sentinel /var/log/nginx/access.log` works.
+    INSTALL_DIR="/usr/local/bin"
+else
+    INSTALL_DIR="$HOME/.local/bin"
+fi
 
 fail() {
     printf 'sentinel installer: %s\n' "$*" >&2
@@ -88,6 +138,11 @@ install -m 0755 "${tmpdir}/sentinel" "${INSTALL_DIR}/sentinel"
 
 printf 'Installed %s\n' "${INSTALL_DIR}/sentinel"
 "${INSTALL_DIR}/sentinel" --version
+
+if [ "$(id -u)" -ne 0 ]; then
+    printf '\nReading /var/log/nginx/access.log usually needs root. To make `sudo sentinel` work, install system-wide:\n'
+    printf '  curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | sudo sh\n' "$REPO"
+fi
 
 case ":${PATH:-}:" in
     *":${INSTALL_DIR}:"*)

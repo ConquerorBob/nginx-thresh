@@ -20,7 +20,15 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.ps1 | iex
 ```
 
-The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256, puts the binary in `~/.local/bin` (`%LOCALAPPDATA%\sentinel\bin` on Windows), and tells you if that directory is not on your PATH. Set `SENTINEL_VERSION=v0.1.0` to pin a release or `SENTINEL_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-sentinel/releases).
+The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `SENTINEL_VERSION=v0.1.0` to pin a release or `SENTINEL_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-sentinel/releases).
+
+nginx logs are usually root-owned, and `sudo` uses a restricted PATH that does not include `~/.local/bin`. If you plan to run `sudo sentinel /var/log/nginx/access.log`, install system-wide instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-sentinel/main/install.sh | sudo sh
+```
+
+That writes `/usr/local/bin/sentinel`, which sudo's secure path includes. If you keep the per-user install, use `sudo "$(command -v sentinel)" /var/log/nginx/access.log`, or run sentinel without sudo after adding yourself to the log's group.
 
 ## Build from source
 
