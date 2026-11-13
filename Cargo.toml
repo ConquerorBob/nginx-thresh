@@ -16,6 +16,12 @@ colored = "2"
 indicatif = "0.17"
 regex = "1"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
+] }
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

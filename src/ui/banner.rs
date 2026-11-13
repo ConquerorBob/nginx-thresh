@@ -1,15 +1,21 @@
 //! Startup splash for the `thresh` binary.
 //!
-//! The wordmark is drawn as a six-row block letter form so it stays legible
-//! on any UTF-8 terminal. Colours come from `colored`, which automatically
-//! disables itself when stdout is not a TTY (or when `--no-color` was passed
-//! by `main`), so the banner remains clean in pipes and log files.
+//! The wordmark is drawn as a six-row block letter form. Colour and glyphs
+//! come from [`super::theme`], which also decides whether the console can be
+//! trusted with box-drawing characters: when it cannot, the ASCII wordmark is
+//! printed instead so the splash still lines up on a legacy codepage.
+//!
+//! Colours are disabled by `colored` when stdout is not a TTY (or when
+//! `--no-color` was passed by `main`), so the banner remains clean in pipes
+//! and log files.
 
 use std::io::{self, Write};
 
 use colored::Colorize;
 
-/// Six-row block-letter wordmark for `THRESH`.
+use super::theme::{self, G};
+
+/// Six-row block-letter wordmark for `THRESH`, in box-drawing glyphs.
 ///
 /// Rows are stored with trailing padding removed; internal spacing is part of
 /// the glyphs and must be preserved.
@@ -22,11 +28,23 @@ const WORDMARK: [&str; 6] = [
     "   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝",
 ];
 
+/// Six-row ASCII fallback for `THRESH`, slanted stencil built from `/`, `\`,
+/// `_` and `|`.
+///
+/// Every row is 7-bit ASCII so a legacy codepage cannot turn a glyph into
+/// mojibake and shift the columns after it. Used whenever
+/// [`theme::Theme::is_unicode`] is false.
+const ASCII_WORDMARK: [&str; 6] = [
+    " _______   _    _   ____    ______    _____   _    _",
+    "|__   __| | |  | | |  _ \\  |  ____|  / ____| | |  | |",
+    "   | |    | |__| | | |_) | | |__    | (___   | |__| |",
+    "   | |    |  __  | |  _ <  |  __|    \\___ \\  |  __  |",
+    "   | |    | |  | | | |_) | | |____   ____) | | |  | |",
+    "   |_|    |_|  |_| |____/  |______| |_____/  |_|  |_|",
+];
+
 /// Left margin for the wordmark rows; matches the first row's shield prefix.
 const INDENT: &str = "     ";
-
-/// Separator drawn at the width of the wordmark's widest row.
-const RULE_WIDTH: usize = 49;
 
 const TAGLINE: &str = "NGINX ACCESS-LOG THREAT DETECTION";
 
@@ -40,26 +58,55 @@ pub fn print_banner() {
 
 /// Render the splash into any writer; separated from stdout for testability.
 fn write_banner<W: Write>(out: &mut W) -> io::Result<()> {
-    for (index, row) in WORDMARK.iter().enumerate() {
+    let theme = theme::theme();
+    let rows = if theme.is_unicode() {
+        WORDMARK
+    } else {
+        ASCII_WORDMARK
+    };
+    let width = rule_width(&rows);
+
+    for (index, row) in rows.iter().enumerate() {
         if index == 0 {
-            writeln!(out, "  {}  {}", "◆".red().bold(), row.cyan().bold())?;
+            writeln!(
+                out,
+                "  {}  {}",
+                theme.accent(theme.glyph(G::Bullet)).bold(),
+                theme.accent(row).bold()
+            )?;
         } else {
-            writeln!(out, "{INDENT}{}", row.cyan().bold())?;
+            writeln!(out, "{INDENT}{}", theme.accent(row).bold())?;
         }
     }
 
     writeln!(out)?;
-    writeln!(out, "{INDENT}{}", "─".repeat(RULE_WIDTH).cyan().dimmed())?;
-    writeln!(out, "{INDENT}{}", TAGLINE.bold())?;
-    writeln!(out, "{INDENT}{}", version_line().dimmed())?;
+    writeln!(
+        out,
+        "{INDENT}{}",
+        theme.accent_muted(&theme.repeated(G::Rule, width))
+    )?;
+    writeln!(out, "{INDENT}{}", theme.strong(TAGLINE))?;
+    writeln!(out, "{INDENT}{}", theme.accent_muted(&version_line()))?;
     writeln!(out)?;
     Ok(())
 }
 
-/// Version and build flavour, e.g. `v0.1.0  ·  streaming parser  ·  rule engine`.
+/// Width of the rule under the wordmark: its widest row, so the two wordmarks
+/// each get a rule that matches their own footprint.
+fn rule_width(rows: &[&str; 6]) -> usize {
+    rows.iter()
+        .map(|row| row.chars().count())
+        .max()
+        .unwrap_or(0)
+}
+
+/// Version and build flavour: package version, parser flavour and rule
+/// engine, joined with the theme's separator glyph.
 fn version_line() -> String {
+    let theme = theme::theme();
+    let sep = theme.glyph(G::Sep);
     format!(
-        "v{}  ·  streaming parser  ·  rule engine",
+        "v{}  {sep}  streaming parser  {sep}  rule engine",
         env!("CARGO_PKG_VERSION")
     )
 }
@@ -75,12 +122,13 @@ mod tests {
     #[test]
     fn wordmark_has_six_rows() {
         assert_eq!(WORDMARK.len(), 6);
+        assert_eq!(ASCII_WORDMARK.len(), 6);
     }
 
     #[test]
     fn wordmark_fits_terminal_width() {
         let prefix = INDENT.chars().count();
-        for row in WORDMARK {
+        for row in WORDMARK.iter().chain(ASCII_WORDMARK.iter()) {
             assert!(
                 prefix + display_width(row) <= 100,
                 "wordmark row exceeds 100 columns: {row:?}"
@@ -90,8 +138,23 @@ mod tests {
 
     #[test]
     fn source_rows_have_no_trailing_whitespace() {
-        for row in WORDMARK {
-            assert_eq!(row, row.trim_end(), "trailing whitespace in {row:?}");
+        for row in WORDMARK.iter().chain(ASCII_WORDMARK.iter()) {
+            assert_eq!(*row, row.trim_end(), "trailing whitespace in {row:?}");
+        }
+    }
+
+    #[test]
+    fn ascii_wordmark_is_seven_bit() {
+        for row in ASCII_WORDMARK {
+            assert!(row.is_ascii(), "non-ASCII byte in {row:?}");
+        }
+    }
+
+    #[test]
+    fn rule_width_tracks_the_widest_row() {
+        for rows in [&WORDMARK, &ASCII_WORDMARK] {
+            let widest = rows.iter().map(|row| display_width(row)).max().unwrap_or(0);
+            assert_eq!(rule_width(rows), widest);
         }
     }
 

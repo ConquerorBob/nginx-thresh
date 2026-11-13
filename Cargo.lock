@@ -206,6 +206,7 @@ dependencies = [
  "colored",
  "indicatif",
  "regex",
+ "windows-sys",
 ]
 
 [[package]]

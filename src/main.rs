@@ -46,9 +46,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    if opts.no_color {
-        colored::control::set_override(false);
-    }
+    ui::theme::init(opts.no_color, opts.ascii);
 
     ui::banner::print_banner();
 

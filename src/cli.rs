@@ -10,6 +10,7 @@ pub struct Options {
     pub chunk_bytes: u64,
     pub max_events: usize,
     pub no_color: bool,
+    pub ascii: bool,
 }
 
 impl Default for Options {
@@ -27,6 +28,7 @@ impl Default for Options {
             chunk_bytes: 16 * 1024 * 1024,
             max_events: 250_000,
             no_color: false,
+            ascii: false,
         }
     }
 }
@@ -50,6 +52,10 @@ where
             "-V" | "--version" => return Ok(CliAction::Version),
             "--no-color" => {
                 opts.no_color = true;
+                continue;
+            }
+            "--ascii" => {
+                opts.ascii = true;
                 continue;
             }
             _ => {}
@@ -165,6 +171,7 @@ OPTIONS:
         --chunk-mb N     Read chunk size in MiB for parallel parsing (default: 16)
         --max-events N   Hard cap on storable threat events (default: 250000)
         --no-color       Disable ANSI colors
+        --ascii          ASCII glyphs only (legacy consoles, no box drawing)
 ",
         version = env!("CARGO_PKG_VERSION")
     );

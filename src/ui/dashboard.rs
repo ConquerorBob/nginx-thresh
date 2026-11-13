@@ -2,8 +2,10 @@
 //!
 //! The layout is deliberately narrow (<= 100 columns) and text-first: a
 //! two-column summary, a category histogram and the ranked critical threats
-//! with their raw request payloads. All colours come from `colored`; when the
-//! output is redirected the ANSI sequences disappear automatically.
+//! with their raw request payloads. Colour and glyphs come from
+//! [`crate::ui::theme`], which resolves once at startup: when the output is
+//! redirected the ANSI sequences disappear, and a console that cannot render
+//! box drawing gets the ASCII forms without the columns shifting.
 
 use std::io::{self, Write};
 use std::time::Duration;
@@ -12,6 +14,7 @@ use colored::{ColoredString, Colorize};
 
 use crate::model::threat::{Category, ThreatEvent};
 use crate::scoring::ScoredEvent;
+use crate::ui::theme::{theme, G};
 
 /// Width of the full-width horizontal rules, excluding the two-space margin.
 const RULE_WIDTH: usize = 92;
@@ -60,9 +63,10 @@ pub fn render_dashboard(view: &DashboardView<'_>) {
 /// Render the dashboard into any writer. Kept separate from stdout so tests
 /// can capture the output without touching the terminal.
 fn render_to<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> {
+    let t = theme();
     writeln!(out)?;
     writeln!(out, "  {}", rule())?;
-    writeln!(out, "  {}", "EXECUTIVE SUMMARY".bold().cyan())?;
+    writeln!(out, "  {}", t.accent("EXECUTIVE SUMMARY").bold())?;
     writeln!(out, "  {}", rule())?;
     writeln!(out)?;
 
@@ -72,9 +76,8 @@ fn render_to<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> 
         writeln!(
             out,
             "  {} {}",
-            "!".yellow().bold(),
-            "Event or auth-failure storage cap reached — rerun with a higher --max-events for full coverage."
-                .yellow()
+            t.warn(t.glyph(G::Bang)).bold(),
+            t.warn("Event or auth-failure storage cap reached — rerun with a higher --max-events for full coverage.")
         )?;
         writeln!(out)?;
     }
@@ -86,13 +89,15 @@ fn render_to<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> 
 }
 
 fn rule() -> ColoredString {
-    "─".repeat(RULE_WIDTH).dimmed()
+    let t = theme();
+    t.muted(&t.repeated(G::Rule, RULE_WIDTH))
 }
 
 /// Two-column key/value block covering the scan's headline numbers.
 fn write_summary<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> {
-    let label = |text: &str| pad_right(text, LABEL_WIDTH).dimmed();
-    let separator = || "·".dimmed();
+    let t = theme();
+    let label = |text: &str| t.muted(&pad_right(text, LABEL_WIDTH));
+    let separator = || t.muted(t.glyph(G::Sep));
 
     let log_path = truncate_middle(&sanitize(view.log_path), PATH_WIDTH);
     writeln!(
@@ -105,16 +110,16 @@ fn write_summary<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<
     )?;
 
     let malformed = if view.malformed_lines > 0 {
-        format!("{} malformed", commafy(view.malformed_lines)).yellow()
+        t.warn(&format!("{} malformed", commafy(view.malformed_lines)))
     } else {
-        format!("{} malformed", commafy(view.malformed_lines)).dimmed()
+        t.muted(&format!("{} malformed", commafy(view.malformed_lines)))
     };
     writeln!(
         out,
         "  {} {} {}  {}  {}",
         label("Lines"),
         commafy(view.total_lines).bold(),
-        "scanned".dimmed(),
+        t.muted("scanned"),
         separator(),
         malformed
     )?;
@@ -137,7 +142,7 @@ fn write_summary<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<
         out,
         "  {} {}",
         label("Throughput"),
-        human_rate(throughput).cyan()
+        t.accent(&human_rate(throughput))
     )?;
 
     writeln!(
@@ -145,25 +150,25 @@ fn write_summary<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<
         "  {} {} {}  {}  {} {}",
         label("Threats"),
         commafy(view.total_events as u64).bold(),
-        "suspicious events".dimmed(),
+        t.muted("suspicious events"),
         separator(),
         commafy(view.unique_ips as u64).bold(),
-        "unique offending IPs".dimmed()
+        t.muted("unique offending IPs")
     )?;
 
     let severity = format!(
         "{} {} {} {} {} {} {} {} {} {} {}",
-        "CRITICAL".red().bold(),
-        commafy(view.critical_count as u64).red(),
-        "(>=8)".dimmed(),
+        t.danger("CRITICAL").bold(),
+        t.danger(&commafy(view.critical_count as u64)),
+        t.muted("(>=8)"),
         separator(),
-        "HIGH".yellow().bold(),
-        commafy(view.high_count as u64).yellow(),
-        "(6-7.99)".dimmed(),
+        t.warn("HIGH").bold(),
+        t.warn(&commafy(view.high_count as u64)),
+        t.muted("(6-7.99)"),
         separator(),
-        "MEDIUM".white().bold(),
+        t.strong("MEDIUM"),
         commafy(view.medium_count as u64),
-        "(<6)".dimmed()
+        t.muted("(<6)")
     );
     writeln!(out, "  {} {}", label("Severity"), severity)?;
     writeln!(out)?;
@@ -173,6 +178,7 @@ fn write_summary<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<
 /// Category histogram, preserving the caller's sort order and hiding empty
 /// categories.
 fn write_categories<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> {
+    let t = theme();
     let visible: Vec<(Category, usize)> = view
         .category_counts
         .iter()
@@ -186,7 +192,7 @@ fn write_categories<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Resu
 
     let max = visible.iter().map(|(_, count)| *count).max().unwrap_or(0);
 
-    writeln!(out, "  {}", "CATEGORY BREAKDOWN".bold().cyan())?;
+    writeln!(out, "  {}", t.accent("CATEGORY BREAKDOWN").bold())?;
     writeln!(out)?;
 
     for (category, count) in visible {
@@ -195,14 +201,14 @@ fn write_categories<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Resu
         } else {
             (((count as f64 / max as f64) * CATEGORY_BAR_WIDTH as f64).round() as usize).max(1)
         };
-        let bar = "█".repeat(width);
+        let bar = t.repeated(G::Bar, width);
         let count = pad_left(&commafy(count as u64), 6);
         writeln!(
             out,
             "  {} {}  {}",
             pad_right(category.label(), CATEGORY_LABEL_WIDTH),
             count.bold(),
-            tint(bar, category_tier(category))
+            tint(&bar, category_tier(category))
         )?;
     }
 
@@ -212,11 +218,12 @@ fn write_categories<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Resu
 
 /// Ranked threat list, or a green all-clear panel when nothing ranked.
 fn write_top_threats<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Result<()> {
+    let t = theme();
     if view.top.is_empty() {
         return write_empty_panel(out);
     }
 
-    writeln!(out, "  {}", "TOP THREATS".bold().cyan())?;
+    writeln!(out, "  {}", t.accent("TOP THREATS").bold())?;
     writeln!(out)?;
 
     let header = format!(
@@ -228,7 +235,7 @@ fn write_top_threats<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Res
         pad_right("CATEGORY", 20),
         pad_right("STATUS", STATUS_WIDTH),
     );
-    writeln!(out, "  {}", header.dimmed())?;
+    writeln!(out, "  {}", t.muted(&header))?;
 
     for (index, scored) in view.top.iter().enumerate() {
         write_top_entry(out, index + 1, scored)?;
@@ -240,6 +247,7 @@ fn write_top_threats<W: Write>(out: &mut W, view: &DashboardView<'_>) -> io::Res
 }
 
 fn write_top_entry<W: Write>(out: &mut W, rank: usize, scored: &ScoredEvent) -> io::Result<()> {
+    let t = theme();
     let event = &scored.event;
 
     let rank_cell = pad_right(&format!("#{rank}"), 4);
@@ -255,49 +263,82 @@ fn write_top_entry<W: Write>(out: &mut W, rank: usize, scored: &ScoredEvent) -> 
     writeln!(
         out,
         "  {} {}  {}  {}  {}  {}",
-        rank_cell.dimmed(),
-        tint(score_cell, score_tier(scored.final_score)),
+        t.muted(&rank_cell),
+        tint(&score_cell, score_tier(scored.final_score)),
         timestamp_cell,
-        ip_cell.cyan(),
+        t.accent(&ip_cell),
         category_cell,
         status_cell(event.status)
     )?;
 
     let payload = truncate_chars(&request_payload(event), PAYLOAD_WIDTH);
-    writeln!(out, "    {} {}", "↳".cyan(), payload.dimmed())?;
+    writeln!(
+        out,
+        "    {} {}",
+        t.accent(t.glyph(G::Arrow)),
+        t.muted(&payload)
+    )?;
 
     let detail = detail_line(scored);
     if !detail.is_empty() {
-        writeln!(out, "      {}", truncate_chars(&detail, DETAIL_WIDTH).dimmed())?;
+        writeln!(
+            out,
+            "      {}",
+            t.muted(&truncate_chars(&detail, DETAIL_WIDTH))
+        )?;
     }
 
     Ok(())
 }
 
 fn write_empty_panel<W: Write>(out: &mut W) -> io::Result<()> {
+    let t = theme();
     const INNER: usize = 58;
-    let body = pad_right(" ✓  No suspicious activity detected.", INNER);
+    let body = pad_right(
+        &format!(" {}  No suspicious activity detected.", t.glyph(G::Check)),
+        INNER,
+    );
 
-    writeln!(out, "  {}", format!("┌{}┐", "─".repeat(INNER)).green())?;
-    writeln!(out, "  {}", format!("│{body}│").green())?;
-    writeln!(out, "  {}", format!("└{}┘", "─".repeat(INNER)).green())?;
-    Ok(())
-}
-
-fn write_footer<W: Write>(out: &mut W) -> io::Result<()> {
-    writeln!(out)?;
-    writeln!(out, "  {}", rule())?;
     writeln!(
         out,
-        "  {} {} · analysis complete",
-        "◆".cyan(),
-        format!("thresh v{}", env!("CARGO_PKG_VERSION")).bold()
+        "  {}",
+        t.ok(&format!(
+            "{}{}{}",
+            t.glyph(G::BoxTL),
+            t.repeated(G::BoxH, INNER),
+            t.glyph(G::BoxTR)
+        ))
     )?;
     writeln!(
         out,
         "  {}",
-        "Rerun with --top N to inspect more.".dimmed()
+        t.ok(&format!("{}{}{}", t.glyph(G::BoxV), body, t.glyph(G::BoxV)))
     )?;
+    writeln!(
+        out,
+        "  {}",
+        t.ok(&format!(
+            "{}{}{}",
+            t.glyph(G::BoxBL),
+            t.repeated(G::BoxH, INNER),
+            t.glyph(G::BoxBR)
+        ))
+    )?;
+    Ok(())
+}
+
+fn write_footer<W: Write>(out: &mut W) -> io::Result<()> {
+    let t = theme();
+    writeln!(out)?;
+    writeln!(out, "  {}", rule())?;
+    writeln!(
+        out,
+        "  {} {} {} analysis complete",
+        t.accent(t.glyph(G::Bullet)),
+        format!("thresh v{}", env!("CARGO_PKG_VERSION")).bold(),
+        t.glyph(G::Sep)
+    )?;
+    writeln!(out, "  {}", t.muted("Rerun with --top N to inspect more."))?;
     Ok(())
 }
 
@@ -363,7 +404,8 @@ fn detail_line(scored: &ScoredEvent) -> String {
         }
     }
 
-    parts.join(" · ")
+    let separator = format!(" {} ", theme().glyph(G::Sep));
+    parts.join(&separator)
 }
 
 #[derive(Clone, Copy)]
@@ -394,15 +436,17 @@ fn category_tier(category: Category) -> Tier {
     }
 }
 
-fn tint(text: String, tier: Tier) -> ColoredString {
+fn tint(text: &str, tier: Tier) -> ColoredString {
+    let t = theme();
     match tier {
-        Tier::Critical => text.red().bold(),
-        Tier::High => text.yellow(),
-        Tier::Low => text.white(),
+        Tier::Critical => t.danger(text).bold(),
+        Tier::High => t.warn(text),
+        Tier::Low => t.strong(text),
     }
 }
 
 fn status_cell(status: u16) -> ColoredString {
+    let t = theme();
     let text = if status == 0 {
         "-".to_string()
     } else {
@@ -410,10 +454,10 @@ fn status_cell(status: u16) -> ColoredString {
     };
     let padded = pad_left(&text, STATUS_WIDTH);
     match status {
-        500..=599 => padded.red().bold(),
-        400..=499 => padded.yellow(),
-        200..=399 => padded.green(),
-        _ => padded.dimmed(),
+        500..=599 => t.danger(&padded).bold(),
+        400..=499 => t.warn(&padded),
+        200..=399 => t.ok(&padded),
+        _ => t.muted(&padded),
     }
 }
 
@@ -494,8 +538,16 @@ fn truncate_chars(input: &str, max_chars: usize) -> String {
         return input.to_string();
     }
 
-    let mut out: String = input.chars().take(max_chars - 1).collect();
-    out.push('…');
+    let ellipsis = theme().glyph(G::Ellipsis);
+    let marker = ellipsis.chars().count();
+    if marker >= max_chars {
+        // No room for a prefix plus the marker; the marker alone is the best
+        // that fits.
+        return ellipsis.chars().take(max_chars).collect();
+    }
+
+    let mut out: String = input.chars().take(max_chars - marker).collect();
+    out.push_str(ellipsis);
     out
 }
 
@@ -506,10 +558,12 @@ fn truncate_middle(input: &str, max_chars: usize) -> String {
         return truncate_chars(input, max_chars);
     }
 
-    let head = max_chars / 2 - 1;
-    let tail = max_chars - head - 1;
+    let ellipsis = theme().glyph(G::Ellipsis);
+    let marker = ellipsis.chars().count();
+    let head = (max_chars / 2).saturating_sub(marker);
+    let tail = max_chars - head - marker;
     let mut out: String = input.chars().take(head).collect();
-    out.push('…');
+    out.push_str(ellipsis);
     out.extend(input.chars().skip(total - tail));
     out
 }

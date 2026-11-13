@@ -9,19 +9,8 @@ use std::time::Duration;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
+use super::theme::{self, Tint};
 use crate::parser::reader::ProgressSink;
-
-/// Style shared by every bar: spinner, message, 42-column gauge, byte counts,
-/// throughput and ETA.
-const TEMPLATE: &str =
-    "{spinner:.cyan} {msg:.bold} [{bar:42.cyan/blue}] {bytes}/{total_bytes} {percent}% {bytes_per_sec} ETA {eta}";
-
-/// Fractional block glyphs, from full to nearly empty. The final entry is the
-/// empty cell.
-const PROGRESS_CHARS: &str = "█▉▊▋▌▍▎▏  ";
-
-/// Braille spinner, one frame per steady tick.
-const TICK_CHARS: &str = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
 /// Real-time terminal progress bar driven by the parser workers.
 pub struct TerminalProgress {
@@ -30,11 +19,24 @@ pub struct TerminalProgress {
 
 impl TerminalProgress {
     pub fn new(total_bytes: u64) -> Self {
+        let theme = theme::theme();
+
+        // `indicatif` templates only understand the 16 ANSI colour names, so
+        // the gauge is painted bright magenta here even when the dashboard
+        // above it is drawing the theme's 24-bit accent. With colour off
+        // (`--no-color`, `NO_COLOR`, a redirected stderr) the template carries
+        // no style at all, so a plain run emits no escape sequences anywhere.
+        let template = if theme.tint() == Tint::None {
+            "{spinner} {msg} [{bar:42}] {bytes}/{total_bytes} {percent}% {bytes_per_sec} ETA {eta}"
+        } else {
+            "{spinner:.bright_magenta} {msg:.bold} [{bar:42.bright_magenta/black}] {bytes}/{total_bytes} {percent}% {bytes_per_sec} ETA {eta}"
+        };
+
         let bar = ProgressBar::new(total_bytes);
-        let style = ProgressStyle::with_template(TEMPLATE)
-            .expect("progress template is a compile-time constant and always valid")
-            .progress_chars(PROGRESS_CHARS)
-            .tick_chars(TICK_CHARS);
+        let style = ProgressStyle::with_template(template)
+            .expect("progress template is built from literal fields and is always valid")
+            .progress_chars(theme.gauge_chars())
+            .tick_chars(theme.spinner_chars());
         bar.set_style(style);
         bar.set_message("Parsing");
         bar.enable_steady_tick(Duration::from_millis(120));

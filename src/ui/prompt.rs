@@ -2,13 +2,15 @@
 //!
 //! Input is intentionally forgiving: surrounding single or double quotes are
 //! stripped, whitespace is trimmed and a leading `~/` is expanded through the
-//! `HOME` environment variable. Invalid paths produce a single red reason and
-//! the prompt repeats until a readable regular file is supplied.
+//! `HOME` environment variable. Invalid paths produce a single danger-coloured
+//! reason and the prompt repeats until a readable regular file is supplied.
 
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use colored::Colorize;
+
+use super::theme::{self, G};
 
 /// Ask the operator for the nginx access-log path, re-prompting until a
 /// readable file is provided.
@@ -30,14 +32,15 @@ fn prompt_with<R: BufRead, W: Write>(
     interactive: bool,
 ) -> io::Result<PathBuf> {
     let mut buffer = String::new();
+    let theme = theme::theme();
 
     loop {
         write!(
             writer,
             "  {} {} {} ",
-            "▸".cyan().bold(),
-            "nginx access log path".bold(),
-            "›".cyan()
+            theme.accent(theme.glyph(G::Prompt)).bold(),
+            theme.strong("nginx access log path"),
+            theme.muted(theme.glyph(G::PromptClose))
         )?;
         writer.flush()?;
 
@@ -57,8 +60,8 @@ fn prompt_with<R: BufRead, W: Write>(
             writeln!(
                 writer,
                 "    {} {}",
-                "✗".red().bold(),
-                "path cannot be empty".red()
+                theme.danger(theme.glyph(G::Cross)).bold(),
+                theme.danger("path cannot be empty")
             )?;
             continue;
         };
@@ -72,7 +75,12 @@ fn prompt_with<R: BufRead, W: Write>(
                 return Ok(path.canonicalize().unwrap_or(path));
             }
             Err(reason) => {
-                writeln!(writer, "    {} {}", "✗".red().bold(), reason.red())?;
+                writeln!(
+                    writer,
+                    "    {} {}",
+                    theme.danger(theme.glyph(G::Cross)).bold(),
+                    theme.danger(&reason)
+                )?;
             }
         }
     }
@@ -252,7 +260,10 @@ mod tests {
 
         assert_eq!(resolved, path.canonicalize().unwrap());
         let rendered = String::from_utf8(writer).unwrap();
-        assert!(rendered.contains('✗'), "expected an error marker: {rendered}");
+        assert!(
+            rendered.contains(theme::theme().glyph(G::Cross)),
+            "expected an error marker: {rendered}"
+        );
         assert!(rendered.contains("nginx access log path"));
 
         let _ = std::fs::remove_file(path);

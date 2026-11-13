@@ -141,6 +141,14 @@ If nothing fires, the top list is replaced by a single all-clear panel; the summ
 
 Do not read the score as a probability. A 26 means the request is several times more interesting than the 8.0 rows below it, not that there is a 26 percent chance of compromise.
 
+## Terminal output
+
+The accent is a dusty violet, `#9D7CD8`, on the wordmark, the headings and the rules between panels. The bullet on the completion line uses it too. If your terminal advertises neither truecolor nor 256 colours, that accent comes out as bright magenta instead.
+
+`--ascii` prints `-`, `|`, `+`, `->` and `*` where the box-drawing glyphs would go. It is for consoles with a legacy code page. On Windows I set the console output code page to UTF-8 and enable virtual-terminal sequences at startup. If the UTF-8 switch fails, thresh uses the ASCII set, so the columns still line up.
+
+`NO_COLOR` with any non-empty value turns colour off, same as `--no-color`, and so does a pipe. `THRESH_ACCENT` sets the accent; it takes `#9D7CD8`, `9D7CD8` or `157,124,216`, and anything it cannot parse falls back to the default. The progress bar stays at 16 colours, because indicatif has no 24-bit colour to give it.
+
 ## Demo log
 
 Generate the demo file before pointing thresh at your own logs:
@@ -248,6 +256,7 @@ The dashboard is assembled last: headline counts, the category histogram, and th
 | `--chunk-mb N` | 16 | Read chunk size in MiB. Accepts 1-1024; the effective minimum is 1 MiB |
 | `--max-events N` | 250000 | Hard cap on stored threat events. Accepts 1-5,000,000 |
 | `--no-color` | off | Disable ANSI colors. Colors also drop out when output is not a TTY |
+| `--ascii` | off | ASCII glyphs instead of box drawing. For legacy consoles |
 | `-h`, `--help` | | Print usage |
 | `-V`, `--version` | | Print version |
 
