@@ -600,11 +600,12 @@ fn help_and_version_flags() {
 
     let version = run(&argv(None, &["--version"]), None);
     assert_success(&version, "--version");
+    let expected_version = format!("thresh {}", env!("CARGO_PKG_VERSION"));
     assert!(
         stdout(&version)
             .lines()
-            .any(|line| line.trim() == "thresh 0.1.0"),
-        "--version must print `thresh 0.1.0`, got:\n{}",
+            .any(|line| line.trim() == expected_version),
+        "--version must print `{expected_version}`, got:\n{}",
         stdout(&version)
     );
 }
