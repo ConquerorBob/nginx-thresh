@@ -1,8 +1,6 @@
 # thresh
 
-nginx access log in, a ranked list of hostile requests out. The crate is `nginx-thresh`; the binary it builds is `thresh`.
-
-I run a few small servers. Every request they get is already in an nginx access log, which is great until I try to read it. `grep` for `../` returns a page of noise from my own asset paths, and the one request that actually tried `/etc/passwd` is buried in the middle. I wrote thresh to do the boring part: parse the log into typed entries, run a rule set over the parts an attacker controls, correlate hits by source IP, and print the handful of requests worth looking at first.
+Log analyzer for nginx access logs. I built tresh because i got tired of having to use a combination of grep, uniq and awk to parse my logs for any malicious patterns
 
 This is for anyone who runs nginx and wants a quick read on what hit them without standing up a log pipeline. It is one binary with no config file, and it makes no network calls.
 
@@ -21,6 +19,8 @@ irm https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.ps1
 ```
 
 The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.1` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
+
+Running the installer a second time updates in place. It reads the version already on disk before downloading anything, so when you are current it prints `already up to date` and stops. When a newer release exists it prints both versions and replaces the binary. Two flags cover the rest: `--check` reports the state without writing anything and exits 0 when nothing needs doing or 1 when an install or update is required, and `--force` reinstalls the same version. If the binary on disk is newer than the latest release, the script stops instead of quietly downgrading it; `--force` or an explicit `THRESH_VERSION` overrides that.
 
 nginx logs are usually root-owned, and `sudo` uses a restricted PATH that does not include `~/.local/bin`. If you plan to run `sudo thresh /var/log/nginx/access.log`, install system-wide instead:
 
