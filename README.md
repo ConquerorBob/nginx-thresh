@@ -9,7 +9,14 @@ This is for anyone who runs nginx and wants a quick read on what hit them withou
 Linux and macOS:
 
 ```bash
+# install or update to the latest release
 curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh
+
+# report only: exit 0 when current, 1 when an install or update is needed
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s -- --check
+
+# reinstall the version already on disk
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s -- --force
 ```
 
 Windows PowerShell:
@@ -22,17 +29,7 @@ The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Sil
 
 Running the installer a second time updates in place. It reads the version already on disk before downloading anything, so when you are current it prints `already up to date` and stops. When a newer release exists it prints both versions and replaces the binary. Two flags cover the rest: `--check` reports the state without writing anything and exits 0 when nothing needs doing or 1 when an install or update is required, and `--force` reinstalls the same version. If the binary on disk is newer than the latest release, the script stops instead of quietly downgrading it; `--force` or an explicit `THRESH_VERSION` overrides that.
 
-Flags go after `sh -s --`, because everything past that point belongs to the script and not to `sh`:
-
-```bash
-# is a newer release out?
-curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s -- --check
-
-# reinstall the version already on disk
-curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s -- --force
-```
-
-System-wide works the same way: `... | sudo sh -s -- --system --force`.
+Flags go after `sh -s --`. Anywhere before that point they belong to `sh`, which exits with `Illegal option` and never runs the script. With sudo it is the same: `... | sudo sh -s -- --force`.
 
 nginx logs are usually root-owned, and `sudo` uses a restricted PATH that does not include `~/.local/bin`. If you plan to run `sudo thresh /var/log/nginx/access.log`, install system-wide instead:
 
