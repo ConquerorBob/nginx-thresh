@@ -18,7 +18,7 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.ps1 | iex
 ```
 
-The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.2` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
+The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.3` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
 
 Running the installer a second time updates in place. It reads the version already on disk before downloading anything, so when you are current it prints `already up to date` and stops. When a newer release exists it prints both versions and replaces the binary. Two flags cover the rest: `--check` reports the state without writing anything and exits 0 when nothing needs doing or 1 when an install or update is required, and `--force` reinstalls the same version. If the binary on disk is newer than the latest release, the script stops instead of quietly downgrading it; `--force` or an explicit `THRESH_VERSION` overrides that.
 
@@ -115,7 +115,7 @@ Here is a real run against the demo log. The ASCII banner and live progress bar 
       Include-style parameter with a sensitive path (LFI-002) · pattern file_param_traversal in '…
 
   ────────────────────────────────────────────────────────────────────────────────────────────
-  ◆ thresh v0.1.2 · analysis complete
+  ◆ thresh v0.1.3 · analysis complete
   Rerun with --top N to inspect more.
 ```
 
@@ -136,9 +136,6 @@ If nothing fires, the top list is replaced by a single all-clear panel; the summ
 Do not read the score as a probability. A 26 means the request is several times more interesting than the 8.0 rows below it, not that there is a 26 percent chance of compromise.
 
 ## Terminal output
-
-The accent is a dusty violet, `#9D7CD8`, on the wordmark, the headings and the rules between panels. The bullet on the completion line uses it too. If your terminal advertises neither truecolor nor 256 colours, that accent comes out as bright magenta instead.
-
 `--ascii` prints `-`, `|`, `+`, `->` and `*` where the box-drawing glyphs would go. It is for consoles with a legacy code page. On Windows I set the console output code page to UTF-8 and enable virtual-terminal sequences at startup. If the UTF-8 switch fails, thresh uses the ASCII set, so the columns still line up.
 
 `NO_COLOR` with any non-empty value turns colour off, same as `--no-color`, and so does a pipe. `THRESH_ACCENT` sets the accent; it takes `#9D7CD8`, `9D7CD8` or `157,124,216`, and anything it cannot parse falls back to the default. The progress bar stays at 16 colours, because indicatif has no 24-bit colour to give it.
