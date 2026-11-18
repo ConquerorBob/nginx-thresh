@@ -10,7 +10,7 @@ Linux and macOS:
 
 ```bash
 # install or update to the latest release
-curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s --
 
 # report only: exit 0 when current, 1 when an install or update is needed
 curl -fsSL https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.sh | sh -s -- --check
@@ -25,7 +25,7 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/ConquerorBob/nginx-thresh/main/install.ps1 | iex
 ```
 
-The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.1` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
+The script picks the archive for Linux x86_64 or arm64, macOS Intel or Apple Silicon, or Windows x86_64. It checks the SHA-256 and installs to `~/.local/bin` for a normal user, or `/usr/local/bin` when run as root. It tells you if the install directory is not on your PATH. Set `THRESH_VERSION=v0.1.2` to pin a release or `THRESH_INSTALL_DIR` to choose another directory. The archives and checksums are also on the [releases page](https://github.com/ConquerorBob/nginx-thresh/releases).
 
 Running the installer a second time updates in place. It reads the version already on disk before downloading anything, so when you are current it prints `already up to date` and stops. When a newer release exists it prints both versions and replaces the binary. Two flags cover the rest: `--check` reports the state without writing anything and exits 0 when nothing needs doing or 1 when an install or update is required, and `--force` reinstalls the same version. If the binary on disk is newer than the latest release, the script stops instead of quietly downgrading it; `--force` or an explicit `THRESH_VERSION` overrides that.
 
@@ -130,7 +130,7 @@ Here is a real run against the demo log. The ASCII banner and live progress bar 
       Include-style parameter with a sensitive path (LFI-002) · pattern file_param_traversal in '…
 
   ────────────────────────────────────────────────────────────────────────────────────────────
-  ◆ thresh v0.1.1 · analysis complete
+  ◆ thresh v0.1.2 · analysis complete
   Rerun with --top N to inspect more.
 ```
 

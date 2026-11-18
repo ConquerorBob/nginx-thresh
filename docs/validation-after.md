@@ -1,5 +1,7 @@
 # nginx-thresh — Post-Hardening Adversarial Validation
 
+> Historical record. Every measurement and hash below comes from the v0.1.0 binary built on 2026-11-12. Kept as the audit trail for that pass; it is not a claim about later builds.
+
 **Target:** `/home/seun/nginx-thresh`
 **Binary:** `target/release/thresh`, v0.1.0, built **2026-11-12 12:41:09 -0700**
 **SHA-256:** `8dc03faf4b4e505417fbf5459e3fe964490b50a72cf9f779ab02ce4d42e53467`
